@@ -7,10 +7,12 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.workspace.dto.AiOperation;
 import org.workspace.dto.response.Category;
 import org.workspace.dto.response.ClassifyResponse;
 import org.workspace.dto.response.SummaryResponse;
 import org.workspace.exception.LlmException;
+import org.workspace.service.AiMetricsService;
 import org.workspace.service.ClassifyService;
 import org.workspace.service.ai.ClassifyAiService;
 
@@ -24,6 +26,8 @@ public class ClassifyServiceImpl implements ClassifyService {
 
     private final ClassifyAiService aiClassifyService;
 
+    private final AiMetricsService aiMetricsService;
+
     private final Executor aiExecutor;
 
 
@@ -32,7 +36,7 @@ public class ClassifyServiceImpl implements ClassifyService {
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallback")
     @TimeLimiter(name = "aiService")
     public CompletableFuture<ClassifyResponse> classify(String message) {
-        long startTime = System.nanoTime();
+        long startTime = System.currentTimeMillis();
 
         return CompletableFuture.supplyAsync(() -> {
 
@@ -44,6 +48,8 @@ public class ClassifyServiceImpl implements ClassifyService {
                     response.setConfidence(0.0);
                 }
                 long latencyMs = elapsedMs(startTime);
+                aiMetricsService.recordLatency(AiOperation.CLASSIFY, latencyMs);
+                aiMetricsService.recordSuccess();
                 log.info("AI_CALL endpoint=Classify latencyMs={} inputSize={}", latencyMs, message.length());
 
                 return response;
@@ -51,6 +57,8 @@ public class ClassifyServiceImpl implements ClassifyService {
             } catch (Exception ex) {
 
                 long latencyMs = elapsedMs(startTime);
+                aiMetricsService.recordLatency(AiOperation.CLASSIFY, latencyMs);
+                aiMetricsService.recordFailure();
                 log.error("AI call failed | latencyMs={}", latencyMs, ex);
 
                 throw new LlmException("Failed to generate response: " + ex);
@@ -71,6 +79,6 @@ public class ClassifyServiceImpl implements ClassifyService {
     }
 
     private long elapsedMs(long startTime) {
-        return (System.nanoTime() - startTime) / 1_000_000;
+        return (System.currentTimeMillis() - startTime);
     }
 }

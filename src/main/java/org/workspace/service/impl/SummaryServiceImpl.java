@@ -6,8 +6,10 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.workspace.dto.AiOperation;
 import org.workspace.dto.response.SummaryResponse;
 import org.workspace.exception.LlmException;
+import org.workspace.service.AiMetricsService;
 import org.workspace.service.SummaryService;
 import org.workspace.service.ai.SummaryAiService;
 
@@ -21,6 +23,8 @@ public class SummaryServiceImpl implements SummaryService {
 
     private final SummaryAiService aiSummaryService;
 
+    private final AiMetricsService aiMetricsService;
+
     private final Executor aiExecutor;
 
     @Override
@@ -29,7 +33,7 @@ public class SummaryServiceImpl implements SummaryService {
     @TimeLimiter(name = "aiService")
     public CompletableFuture<SummaryResponse> summarize(String message) {
 
-        long startTime = System.nanoTime();
+        long startTime = System.currentTimeMillis();
 
         return CompletableFuture.supplyAsync(() -> {
 
@@ -38,6 +42,8 @@ public class SummaryServiceImpl implements SummaryService {
                 SummaryResponse response = aiSummaryService.summarise(message);
 
                 long latencyMs = elapsedMs(startTime);
+                aiMetricsService.recordLatency(AiOperation.SUMMARIZE, latencyMs);
+                aiMetricsService.recordSuccess();
                 log.info("AI_CALL endpoint=Summarize latencyMs={} inputSize={}", latencyMs, message.length());
 
                 return response;
@@ -45,6 +51,8 @@ public class SummaryServiceImpl implements SummaryService {
             } catch (Exception ex) {
 
                 long latencyMs = elapsedMs(startTime);
+                aiMetricsService.recordLatency(AiOperation.SUMMARIZE, latencyMs);
+                aiMetricsService.recordFailure();
                 log.error("AI call failed | latencyMs={}", latencyMs, ex);
 
                 throw new LlmException("Failed to generate response: " + ex);
@@ -65,6 +73,6 @@ public class SummaryServiceImpl implements SummaryService {
     }
 
     private long elapsedMs(long startTime) {
-        return (System.nanoTime() - startTime) / 1_000_000;
+        return (System.currentTimeMillis() - startTime);
     }
 }

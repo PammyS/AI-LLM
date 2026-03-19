@@ -7,9 +7,11 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.workspace.dto.AiOperation;
 import org.workspace.dto.response.ChatResponse;
 import org.workspace.dto.response.SummaryResponse;
 import org.workspace.exception.LlmException;
+import org.workspace.service.AiMetricsService;
 import org.workspace.service.ChatService;
 
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +24,8 @@ public class ChatServiceImpl implements ChatService {
 
     private final OpenAiChatModel chatModel;
 
+    private final AiMetricsService aiMetricsService;
+
     private final Executor aiExecutor;
 
     @Override
@@ -30,7 +34,7 @@ public class ChatServiceImpl implements ChatService {
     @TimeLimiter(name = "aiService")
     public CompletableFuture<ChatResponse> chat(String message) {
 
-        long startTime = System.nanoTime();
+        long startTime = System.currentTimeMillis();
 
         return CompletableFuture.supplyAsync(() -> {
 
@@ -38,6 +42,8 @@ public class ChatServiceImpl implements ChatService {
                 String response = chatModel.chat(message);
 
                 long latencyMs = elapsedMs(startTime);
+                aiMetricsService.recordLatency(AiOperation.CHAT, latencyMs);
+                aiMetricsService.recordSuccess();
                 log.info("AI_CALL endpoint=Chat latencyMs={} inputSize={}", latencyMs, message.length());
 
                 return ChatResponse.builder()
@@ -47,6 +53,8 @@ public class ChatServiceImpl implements ChatService {
             } catch (Exception ex) {
 
                 long latencyMs = elapsedMs(startTime);
+                aiMetricsService.recordLatency(AiOperation.CHAT, latencyMs);
+                aiMetricsService.recordFailure();
                 log.error("AI call failed | latencyMs={}", latencyMs, ex);
 
                 throw new LlmException("Failed to generate response: " + ex);
@@ -68,6 +76,6 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private long elapsedMs(long startTime) {
-        return (System.nanoTime() - startTime) / 1_000_000;
+        return (System.currentTimeMillis() - startTime);
     }
 }
