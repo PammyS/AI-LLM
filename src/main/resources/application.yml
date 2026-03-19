@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: AI-LLM
+
+server:
+  port: 8000
+
+
+
+langchain4j:
+  ai-services:
+    enabled: true
+  open-ai:
+    chat-model:
+      api-key: ${OPENAI_API_KEY}
+      model-name: gpt-4o
+      max-retries: 1
+      log-requests: true
+      log-responses: true
+
+logging:
+  level:
+    dev.langchain4j: INFO
+    dev.langchain4j.internal.RetryUtils: ERROR
+
+resilience4j:
+  timelimiter:
+    instances:
+      aiService:
+        timeout-duration: 100s
+        cancel-running-future: true
+  retry:
+    instances:
+      aiService:
+        max-attempts: 3
+        wait-duration: 200ms
+    metrics:
+      legacy:
+        enabled: true
+      enabled: true
+  circuitbreaker:
+    instances:
+      aiService:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+    env:
+      show-values: ALWAYS
