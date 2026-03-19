@@ -9,9 +9,9 @@ import lombok.Data;
 @Schema(description = "Classified response from AI")
 public class ClassifyResponse {
 
-    @Description("Category of the input text")
+    @Description("Category of the input. Must be from Defined category type")
     @Schema(description = "Generated category", example = "technical_support")
-    private String category;
+    private Category category;
 
     @Description("Confidence score between 0 and 1")
     @Schema(description = "Confidence score", example = "0.95")

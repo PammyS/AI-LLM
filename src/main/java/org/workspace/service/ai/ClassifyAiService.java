@@ -9,19 +9,12 @@ import org.workspace.dto.response.ClassifyResponse;
 public interface ClassifyAiService {
 
     @SystemMessage("""
-            You are a backend service.
-            Classify the following text into one of these categories:
-                    
-                - billing
-                - technical_support
-                - account_issue
-                - unknown
-                    
-            Return JSON matching this schema:
-            {
-              "category": "...",
-              "confidence": number between 0 and 1
-            }
+            You are a backend classification service.
+
+            Classify the input into one of the predefined categories.
+
+            Do not explain your answer.
+            Only return structured output.
             """)
     ClassifyResponse classify(@UserMessage String text);
 }

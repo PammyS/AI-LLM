@@ -9,14 +9,6 @@ import org.workspace.dto.response.SummaryResponse;
 @AiService
 public interface SummaryAiService {
 
-    @SystemMessage("""
-        You are a backend service.
-
-        Return JSON matching this schema:
-        {
-          "summary": "string",
-          "confidence": number between 0 and 1
-        }
-        """)
+    @SystemMessage(" You are a backend service.")
     SummaryResponse summarise(@UserMessage String text);
 }

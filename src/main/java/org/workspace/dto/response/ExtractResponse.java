@@ -19,7 +19,7 @@ public class ExtractResponse {
     @Schema(description = "Extracted Organization", example = "Google")
     private String organization;
 
-    @Description("Date in format DD-MM-YYYY")
+    @Description("Date in format DD-MM-YYYY (e.g., 20-03-2023)")
     @JsonFormat(pattern = "dd-MM-yyyy")
     @Schema(description = "Extracted Date", example = "23-03-2026")
     private Date date;

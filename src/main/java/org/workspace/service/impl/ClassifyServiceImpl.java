@@ -7,6 +7,7 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.workspace.dto.response.Category;
 import org.workspace.dto.response.ClassifyResponse;
 import org.workspace.dto.response.SummaryResponse;
 import org.workspace.exception.LlmException;
@@ -38,7 +39,10 @@ public class ClassifyServiceImpl implements ClassifyService {
             try {
 
                 ClassifyResponse response = aiClassifyService.classify(message);
-
+                if (response.getCategory() == null) {
+                    response.setCategory(Category.UNKNOWN);
+                    response.setConfidence(0.0);
+                }
                 long latencyMs = elapsedMs(startTime);
                 log.info("AI_CALL endpoint=Classify latencyMs={} inputSize={}", latencyMs, message.length());
 
@@ -60,7 +64,7 @@ public class ClassifyServiceImpl implements ClassifyService {
         log.error("AI service fallback triggered", ex);
 
         ClassifyResponse fallbackResponse = new ClassifyResponse();
-        fallbackResponse.setCategory("unknown");
+        fallbackResponse.setCategory(Category.UNKNOWN);
         fallbackResponse.setConfidence(0.0);
 
         return CompletableFuture.completedFuture(fallbackResponse);
