@@ -14,7 +14,7 @@ import org.workspace.service.ExtractService;
 import org.workspace.service.ai.ExtractAiService;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -23,6 +23,8 @@ public class ExtractServiceImpl implements ExtractService {
 
     private final ExtractAiService extractAiService;
 
+    private final Executor aiExecutor;
+
     @Override
     @Retry(name = "aiService")
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallback")
@@ -30,7 +32,6 @@ public class ExtractServiceImpl implements ExtractService {
     public CompletableFuture<ExtractResponse> extract(String message) {
         long startTime = System.nanoTime();
 
-        int THREAD_POOL_SIZE = 10;
         return CompletableFuture.supplyAsync(() -> {
 
             try {
@@ -38,7 +39,7 @@ public class ExtractServiceImpl implements ExtractService {
                 ExtractResponse response = extractAiService.extract(message);
 
                 long latencyMs = elapsedMs(startTime);
-                log.info("AI call succeeded | latencyMs={}", latencyMs);
+                log.info("AI_CALL endpoint=Extract latencyMs={} inputSize={}", latencyMs, message.length());
 
                 return response;
 
@@ -47,19 +48,17 @@ public class ExtractServiceImpl implements ExtractService {
                 long latencyMs = elapsedMs(startTime);
                 log.error("AI call failed | latencyMs={}", latencyMs, ex);
 
-                throw new LlmException("Failed to generate response");
+                throw new LlmException("Failed to generate response: " + ex);
             }
 
-        }, Executors.newFixedThreadPool(THREAD_POOL_SIZE));
+        }, aiExecutor);
     }
 
-    private CompletableFuture<SummaryResponse> fallback(String message, Throwable ex) {
+    private CompletableFuture<ExtractResponse> fallback(String message, Throwable ex) {
 
         log.error("AI service fallback triggered", ex);
 
-        SummaryResponse fallbackResponse = new SummaryResponse();
-        fallbackResponse.setSummary("AI service temporarily unavailable");
-        fallbackResponse.setConfidence(0.0);
+        ExtractResponse fallbackResponse = new ExtractResponse();
 
         return CompletableFuture.completedFuture(fallbackResponse);
     }

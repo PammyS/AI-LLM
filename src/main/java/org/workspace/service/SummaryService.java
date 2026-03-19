@@ -5,5 +5,5 @@ import org.workspace.dto.response.SummaryResponse;
 import java.util.concurrent.CompletableFuture;
 
 public interface SummaryService {
-    CompletableFuture<SummaryResponse> summarise(String message);
+    CompletableFuture<SummaryResponse> summarize(String message);
 }

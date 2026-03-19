@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/ai/")
+@RequestMapping("/api/v1/ai")
 @RequiredArgsConstructor
 public class AiController {
 
@@ -38,15 +38,15 @@ public class AiController {
     @PostMapping(path = "/summarize")
     public CompletableFuture<SummaryResponse> summarize(@Valid @RequestBody ChatRequest request) {
 
-        log.info("Chat request received");
+        log.info("Summarize request received");
 
-        return summaryService.summarise(request.getMessage());
+        return summaryService.summarize(request.getMessage());
     }
 
     @PostMapping(path = "/classify")
     public CompletableFuture<ClassifyResponse> classify(@Valid @RequestBody ChatRequest request) {
 
-        log.info("Chat request received");
+        log.info("Classify request received");
 
         return classifyService.classify(request.getMessage());
     }
@@ -54,7 +54,7 @@ public class AiController {
     @PostMapping(path = "/extract")
     public CompletableFuture<ExtractResponse> extract(@Valid @RequestBody ChatRequest request) {
 
-        log.info("Chat request received");
+        log.info("Extract request received");
 
         return extractService.extract(request.getMessage());
     }

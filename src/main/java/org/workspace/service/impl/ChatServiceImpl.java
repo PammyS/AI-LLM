@@ -13,7 +13,7 @@ import org.workspace.exception.LlmException;
 import org.workspace.service.ChatService;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -21,6 +21,8 @@ import java.util.concurrent.Executors;
 public class ChatServiceImpl implements ChatService {
 
     private final OpenAiChatModel chatModel;
+
+    private final Executor aiExecutor;
 
     @Override
     @Retry(name = "aiService")
@@ -30,14 +32,13 @@ public class ChatServiceImpl implements ChatService {
 
         long startTime = System.nanoTime();
 
-        int THREAD_POOL_SIZE = 10;
         return CompletableFuture.supplyAsync(() -> {
 
             try {
                 String response = chatModel.chat(message);
 
                 long latencyMs = elapsedMs(startTime);
-                log.info("AI call succeeded | latencyMs={}", latencyMs);
+                log.info("AI_CALL endpoint=Chat latencyMs={} inputSize={}", latencyMs, message.length());
 
                 return ChatResponse.builder()
                         .reply(response)
@@ -48,19 +49,20 @@ public class ChatServiceImpl implements ChatService {
                 long latencyMs = elapsedMs(startTime);
                 log.error("AI call failed | latencyMs={}", latencyMs, ex);
 
-                throw new LlmException("Failed to generate response");
+                throw new LlmException("Failed to generate response: " + ex);
             }
 
-        }, Executors.newFixedThreadPool(THREAD_POOL_SIZE) );
+        }, aiExecutor);
     }
 
-    private CompletableFuture<SummaryResponse> fallback(String message, Throwable ex) {
+    private CompletableFuture<ChatResponse> fallback(String message, Throwable ex) {
 
         log.error("AI service fallback triggered", ex);
 
-        SummaryResponse fallbackResponse = new SummaryResponse();
-        fallbackResponse.setSummary("AI service temporarily unavailable");
-        fallbackResponse.setConfidence(0.0);
+        ChatResponse fallbackResponse = ChatResponse
+                .builder()
+                .reply("AI service temporarily unavailable")
+                .build();
 
         return CompletableFuture.completedFuture(fallbackResponse);
     }

@@ -1,8 +1,10 @@
 package org.workspace.exception;
 
+import java.util.concurrent.TimeoutException;
+
 public class LlmTimeoutException extends ApiException {
 
-    public LlmTimeoutException() {
-        super("LLM request timed out", "LLM_TIMEOUT");
+    public LlmTimeoutException(TimeoutException ex) {
+        super("LLM request timed out", "LLM_TIMEOUT" + ex);
     }
 }

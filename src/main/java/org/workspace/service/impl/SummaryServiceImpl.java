@@ -12,7 +12,7 @@ import org.workspace.service.SummaryService;
 import org.workspace.service.ai.SummaryAiService;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -21,15 +21,16 @@ public class SummaryServiceImpl implements SummaryService {
 
     private final SummaryAiService aiSummaryService;
 
+    private final Executor aiExecutor;
+
     @Override
     @Retry(name = "aiService")
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallback")
     @TimeLimiter(name = "aiService")
-    public CompletableFuture<SummaryResponse> summarise(String message) {
+    public CompletableFuture<SummaryResponse> summarize(String message) {
 
         long startTime = System.nanoTime();
 
-        int THREAD_POOL_SIZE = 10;
         return CompletableFuture.supplyAsync(() -> {
 
             try {
@@ -37,7 +38,7 @@ public class SummaryServiceImpl implements SummaryService {
                 SummaryResponse response = aiSummaryService.summarise(message);
 
                 long latencyMs = elapsedMs(startTime);
-                log.info("AI call succeeded | latencyMs={}", latencyMs);
+                log.info("AI_CALL endpoint=Summarize latencyMs={} inputSize={}", latencyMs, message.length());
 
                 return response;
 
@@ -46,10 +47,10 @@ public class SummaryServiceImpl implements SummaryService {
                 long latencyMs = elapsedMs(startTime);
                 log.error("AI call failed | latencyMs={}", latencyMs, ex);
 
-                throw new LlmException("Failed to generate response");
+                throw new LlmException("Failed to generate response: " + ex);
             }
 
-        }, Executors.newFixedThreadPool(THREAD_POOL_SIZE));
+        }, aiExecutor);
     }
 
     private CompletableFuture<SummaryResponse> fallback(String message, Throwable ex) {
