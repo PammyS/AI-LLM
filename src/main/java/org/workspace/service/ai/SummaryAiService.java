@@ -1,5 +1,6 @@
 package org.workspace.service.ai;
 
+import dev.langchain4j.service.Result;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 
@@ -10,5 +11,5 @@ import org.workspace.dto.response.SummaryResponse;
 public interface SummaryAiService {
 
     @SystemMessage(" You are a backend service.")
-    SummaryResponse summarise(@UserMessage String text);
+    Result<SummaryResponse> summarise(@UserMessage String text);
 }

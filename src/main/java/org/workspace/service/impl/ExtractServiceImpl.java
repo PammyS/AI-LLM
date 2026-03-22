@@ -1,6 +1,8 @@
 package org.workspace.service.impl;
 
 
+import dev.langchain4j.model.output.TokenUsage;
+import dev.langchain4j.service.Result;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
@@ -9,9 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.workspace.dto.AiOperation;
 import org.workspace.dto.response.ExtractResponse;
-import org.workspace.dto.response.SummaryResponse;
 import org.workspace.exception.LlmException;
-import org.workspace.service.AiMetricsService;
+import org.workspace.ai.metrics.AiMetricsService;
 import org.workspace.service.ExtractService;
 import org.workspace.service.ai.ExtractAiService;
 
@@ -40,14 +41,23 @@ public class ExtractServiceImpl implements ExtractService {
 
             try {
 
-                ExtractResponse response = extractAiService.extract(message);
+                Result<ExtractResponse> responseResult = extractAiService.extract(message);
+
+                ExtractResponse extractResponse = responseResult.content();
+
+                TokenUsage tokens  = responseResult.tokenUsage();
+                int inputTokens = tokens.inputTokenCount();
+                int outputTokens = tokens.outputTokenCount();
 
                 long latencyMs = elapsedMs(startTime);
                 aiMetricsService.recordLatency(AiOperation.EXTRACT, latencyMs);
-                aiMetricsService.recordSuccess();
+                aiMetricsService.recordSuccess(AiOperation.EXTRACT);
+                aiMetricsService.recordTokens(AiOperation.EXTRACT, inputTokens, outputTokens);
+                double cost = aiMetricsService.recordCost(AiOperation.EXTRACT, inputTokens, outputTokens);
                 log.info("AI_CALL endpoint=Extract latencyMs={} inputSize={}", latencyMs, message.length());
+                log.info("AI usage Extract Service | input={} output={} cost=${}", inputTokens, outputTokens, cost);
 
-                return response;
+                return extractResponse;
 
             } catch (Exception ex) {
 

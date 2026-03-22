@@ -1,5 +1,6 @@
 package org.workspace.service.ai;
 
+import dev.langchain4j.service.Result;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.spring.AiService;
@@ -16,5 +17,5 @@ public interface ClassifyAiService {
             Do not explain your answer.
             Only return structured output.
             """)
-    ClassifyResponse classify(@UserMessage String text);
+    Result<ClassifyResponse> classify(@UserMessage String text);
 }

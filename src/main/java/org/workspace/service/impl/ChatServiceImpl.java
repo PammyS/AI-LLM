@@ -9,9 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.workspace.dto.AiOperation;
 import org.workspace.dto.response.ChatResponse;
-import org.workspace.dto.response.SummaryResponse;
 import org.workspace.exception.LlmException;
-import org.workspace.service.AiMetricsService;
+import org.workspace.ai.metrics.AiMetricsService;
 import org.workspace.service.ChatService;
 
 import java.util.concurrent.CompletableFuture;
@@ -43,7 +42,7 @@ public class ChatServiceImpl implements ChatService {
 
                 long latencyMs = elapsedMs(startTime);
                 aiMetricsService.recordLatency(AiOperation.CHAT, latencyMs);
-                aiMetricsService.recordSuccess();
+                aiMetricsService.recordSuccess(AiOperation.CHAT);
                 log.info("AI_CALL endpoint=Chat latencyMs={} inputSize={}", latencyMs, message.length());
 
                 return ChatResponse.builder()

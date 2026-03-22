@@ -1,5 +1,7 @@
 package org.workspace.service.impl;
 
+import dev.langchain4j.model.output.TokenUsage;
+import dev.langchain4j.service.Result;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
@@ -9,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.workspace.dto.AiOperation;
 import org.workspace.dto.response.SummaryResponse;
 import org.workspace.exception.LlmException;
-import org.workspace.service.AiMetricsService;
+import org.workspace.ai.metrics.AiMetricsService;
 import org.workspace.service.SummaryService;
 import org.workspace.service.ai.SummaryAiService;
 
@@ -39,14 +41,23 @@ public class SummaryServiceImpl implements SummaryService {
 
             try {
 
-                SummaryResponse response = aiSummaryService.summarise(message);
+                Result<SummaryResponse> responseResult = aiSummaryService.summarise(message);
+
+                SummaryResponse summaryResponse = responseResult.content();
+
+                TokenUsage tokens  = responseResult.tokenUsage();
+                int inputTokens = tokens.inputTokenCount();
+                int outputTokens = tokens.outputTokenCount();
 
                 long latencyMs = elapsedMs(startTime);
                 aiMetricsService.recordLatency(AiOperation.SUMMARIZE, latencyMs);
-                aiMetricsService.recordSuccess();
+                aiMetricsService.recordSuccess(AiOperation.SUMMARIZE);
+                aiMetricsService.recordTokens(AiOperation.SUMMARIZE, inputTokens, outputTokens);
+                double cost = aiMetricsService.recordCost(AiOperation.SUMMARIZE, inputTokens, outputTokens);
                 log.info("AI_CALL endpoint=Summarize latencyMs={} inputSize={}", latencyMs, message.length());
+                log.info("AI usage Summary Service | input={} output={} cost=${}", inputTokens, outputTokens, cost);
 
-                return response;
+                return summaryResponse;
 
             } catch (Exception ex) {
 

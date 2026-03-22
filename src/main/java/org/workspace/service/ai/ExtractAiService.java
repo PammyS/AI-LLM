@@ -1,5 +1,6 @@
 package org.workspace.service.ai;
 
+import dev.langchain4j.service.Result;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.spring.AiService;
@@ -9,5 +10,5 @@ import org.workspace.dto.response.ExtractResponse;
 public interface ExtractAiService {
 
     @SystemMessage("Extract structured data from user input.")
-    ExtractResponse extract(@UserMessage String text);
+    Result<ExtractResponse> extract(@UserMessage String text);
 }
