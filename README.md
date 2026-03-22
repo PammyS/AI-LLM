@@ -14,7 +14,8 @@ The system is designed with a strong focus on:
 - structured outputs
 - fault tolerance
 - clean backend architecture
-
+- observable
+- cost metrics visibility
 ---
 
 ## 🧠 Why This Project?
@@ -22,7 +23,7 @@ The system is designed with a strong focus on:
 Most AI demos focus only on calling APIs.
 
 This project focuses on:
-> **building a reliable backend system that integrates AI as a dependency**
+> **building a reliable backend system that integrates AI as a dependency with reliability, observability, and cost-awareness**
 
 It treats LLMs like any external service (e.g., payment gateway), handling:
 - failures
@@ -40,6 +41,17 @@ It treats LLMs like any external service (e.g., payment gateway), handling:
   - Retry
   - Circuit Breaker
   - Timeout
+- ✅ Observability:
+  - Latency tracking
+  - Success / failure metrics
+  - Tagged metrics (operation, model)
+- Actuator integration
+- 💰 Token & Cost Tracking
+  -  Input tokens
+  -  Output tokens
+  - Total tokens
+  - Cost per request
+  - Cost calculation abstraction (CostCalculator)
 - ✅ Asynchronous processing using `CompletableFuture`
 - ✅ Input validation (`@NotBlank`, `@Size`)
 - ✅ Global exception handling
@@ -105,9 +117,37 @@ POST /api/v1/ai/extract
   "date": "March 20"
 }
 ```
+---
+# 📊 Metrics & Monitoring
+## Base Endpoint
+  /actuator/metrics
 
 ---
+# Key Metrics
+* ai.latency
+* ai.requests.success
+* ai.requests.failure
+* ai.tokens.input
+* ai.tokens.output
+* ai.tokens.total
+* ai.cost.total
 
+---
+# 🔍 Filter Metrics by Operation
+
+/actuator/metrics/ai.latency?tag=operation:summarise
+
+---
+# 💰 Cost Calculation
+
+***Cost is computed using token usage:***
+
+cost = (inputTokens × inputRate) + (outputTokens × outputRate)
+
+Example pricing:
+* Input: $0.005 / 1K tokens
+* Output: $0.015 / 1K tokens
+---
 ## 📘 API Documentation
 
 Swagger UI available at:
@@ -176,6 +216,24 @@ Instead of failing requests:
 - system returns safe defaults
 - ensures graceful degradation
 
+### 6. Why Observability?
+Without metrics:
+* AI = black box ❌
+
+With metrics:
+* latency tracking
+* failure analysis
+* performance tuning ✅
+
+### 7. Why Cost Tracking?
+
+LLMs introduce real cost per request.
+
+Tracking enables:
+* budget control
+* optimization decisions
+* production readiness
+
 ---
 
 ## ⚠️ Limitations
@@ -194,7 +252,7 @@ Instead of failing requests:
 - Response caching (Redis)
 - Multi-model support
 - RAG (Retrieval-Augmented Generation)
-- Observability (metrics + tracing)
+- Advanced observability (Prometheus + Grafana)
 
 ---
 
@@ -204,6 +262,7 @@ Instead of failing requests:
 - Spring Boot
 - LangChain4j
 - Resilience4j
+- Micrometer + Actuator
 - Jackson
 - OpenAI API
 - Swagger (OpenAPI)
@@ -222,4 +281,4 @@ Backend Engineer with 10+ years of experience, now exploring production-grade AI
 
 This project demonstrates:
 
-> How to build a **reliable, production-style backend system that integrates AI**, not just call an API.
+> How to build a **reliable, observable, and cost-aware production-style backend system that integrates AI**, not just call an API.
