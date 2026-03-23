@@ -12,6 +12,7 @@ import org.workspace.dto.AiOperation;
 import org.workspace.dto.response.SummaryResponse;
 import org.workspace.exception.LlmException;
 import org.workspace.ai.metrics.AiMetricsService;
+import org.workspace.exception.LlmLowConfidenceException;
 import org.workspace.service.SummaryService;
 import org.workspace.service.ai.SummaryAiService;
 
@@ -27,10 +28,12 @@ public class SummaryServiceImpl implements SummaryService {
 
     private final AiMetricsService aiMetricsService;
 
+    private static final double MIN_CONFIDENCE = 0.7;
+
     private final Executor aiExecutor;
 
     @Override
-    @Retry(name = "aiService")
+    @Retry(name = "aiService", fallbackMethod = "fallbackSummary")
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallback")
     @TimeLimiter(name = "aiService")
     public CompletableFuture<SummaryResponse> summarize(String message) {
@@ -45,6 +48,9 @@ public class SummaryServiceImpl implements SummaryService {
 
                 SummaryResponse summaryResponse = responseResult.content();
 
+                if (summaryResponse.getConfidence() == null || summaryResponse.getConfidence() < MIN_CONFIDENCE) {
+                    throw new LlmLowConfidenceException("SummaryResponse Low confidence response");
+                }
                 TokenUsage tokens  = responseResult.tokenUsage();
                 int inputTokens = tokens.inputTokenCount();
                 int outputTokens = tokens.outputTokenCount();
@@ -81,6 +87,14 @@ public class SummaryServiceImpl implements SummaryService {
         fallbackResponse.setConfidence(0.0);
 
         return CompletableFuture.completedFuture(fallbackResponse);
+    }
+
+    public CompletableFuture<SummaryResponse> fallbackSummary(String input, Throwable ex) {
+        log.warn("Fallback triggered | reason={}", ex.getMessage());
+        SummaryResponse fallback = new SummaryResponse();
+        fallback.setSummary("Unable to generate summary at the moment");
+        fallback.setConfidence(0.0);
+        return CompletableFuture.completedFuture(fallback);
     }
 
     private long elapsedMs(long startTime) {

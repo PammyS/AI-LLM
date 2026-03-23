@@ -27,13 +27,16 @@ resilience4j:
   timelimiter:
     instances:
       aiService:
-        timeout-duration: 100s
+        timeout-duration: 10s
         cancel-running-future: true
   retry:
     instances:
       aiService:
         max-attempts: 3
         wait-duration: 200ms
+        retry-exceptions:
+          - org.workspace.exception.LlmTimeoutException
+          - org.workspace.exception.LlmLowConfidenceException
     metrics:
       legacy:
         enabled: true

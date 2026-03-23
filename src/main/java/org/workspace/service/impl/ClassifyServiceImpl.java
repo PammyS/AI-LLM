@@ -14,6 +14,7 @@ import org.workspace.dto.response.Category;
 import org.workspace.dto.response.ClassifyResponse;
 import org.workspace.exception.LlmException;
 import org.workspace.ai.metrics.AiMetricsService;
+import org.workspace.exception.LlmLowConfidenceException;
 import org.workspace.service.ClassifyService;
 import org.workspace.service.ai.ClassifyAiService;
 
@@ -29,11 +30,13 @@ public class ClassifyServiceImpl implements ClassifyService {
 
     private final AiMetricsService aiMetricsService;
 
+    private static final double MIN_CONFIDENCE = 0.7;
+
     private final Executor aiExecutor;
 
 
     @Override
-    @Retry(name = "aiService")
+    @Retry(name = "aiService", fallbackMethod = "fallbackSummary")
     @CircuitBreaker(name = "aiService", fallbackMethod = "fallback")
     @TimeLimiter(name = "aiService")
     public CompletableFuture<ClassifyResponse> classify(String message) {
@@ -46,6 +49,9 @@ public class ClassifyServiceImpl implements ClassifyService {
                 Result<ClassifyResponse> responseResult = aiClassifyService.classify(message);
 
                 ClassifyResponse classifyResponse = responseResult.content();
+                if (classifyResponse.getConfidence() == null || classifyResponse.getConfidence() < MIN_CONFIDENCE) {
+                    throw new LlmLowConfidenceException("ClassifyResponse Low confidence response");
+                }
                 if (classifyResponse.getCategory() == null) {
                     classifyResponse.setCategory(Category.UNKNOWN);
                     classifyResponse.setConfidence(0.0);
@@ -87,6 +93,14 @@ public class ClassifyServiceImpl implements ClassifyService {
         fallbackResponse.setConfidence(0.0);
 
         return CompletableFuture.completedFuture(fallbackResponse);
+    }
+
+    public CompletableFuture<ClassifyResponse> fallbackSummary(String input, Throwable ex) {
+        log.warn("Fallback triggered | reason={}", ex.getMessage());
+        ClassifyResponse fallback = new ClassifyResponse();
+                fallback.setCategory(null);
+                fallback.setConfidence(0.0);
+        return CompletableFuture.completedFuture(fallback);
     }
 
     private long elapsedMs(long startTime) {
