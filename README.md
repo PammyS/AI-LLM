@@ -64,17 +64,7 @@ It treats LLMs like any external service (e.g., payment gateway), handling:
 
 ## 🏗️ Architecture
 
-```
-Client
-  ↓
-Controller (REST API)
-  ↓
-Service Layer (Summarize / Classify / Extract)
-  ↓
-LLM Service (@AiService - LangChain4j)
-  ↓
-OpenAI API
-```
+![Architecture](docs/architecture.svg)
 
 ### Key Design Principles
 
@@ -82,6 +72,51 @@ OpenAI API
 - **LLM treated as external dependency**
 - **Structured outputs over raw text**
 - **Resilience-first design**
+
+---
+## 🎬 Demo
+
+### API Endpoints (Swagger UI)
+
+![Swagger UI](docs/swagger-apis-overview.png)
+
+### Extract — Structured Data from Natural Language
+**Request**
+```json
+{
+  "message": "John Smith from Google will attend the meeting on March 20 2023."
+}
+```
+
+**Response**
+```json
+{
+  "name": "John Smith",
+  "organization": "Google",
+  "date": "20-03-2023"
+}
+```
+![Extract API Demo](docs/demo-extract.png)
+
+### Summarize — AI-Generated Summary
+
+**Request**
+```json
+{
+  "message": "Artificial intelligence is transforming industries across the globe. From healthcare to finance, 
+  companies are leveraging machine learning models to automate decisions and improve efficiency."
+}
+```
+
+**Response**
+```json
+{
+  "summary": "AI is revolutionizing industries worldwide by using machine learning for decision automation and efficiency enhancement.",
+  "confidence": 0.95
+}
+```
+![Summarize API Demo](docs/demo-summarize.png)
+
 
 ---
 
@@ -236,19 +271,9 @@ Tracking enables:
 
 ---
 
-## ⚠️ Limitations
-
-- Prompt definitions are currently static
-- No token usage tracking yet
-- No caching for repeated requests
-- Single-model integration
-
----
-
 ## 🚀 Future Improvements
 
 - Prompt externalization & versioning
-- Token usage & cost tracking
 - Response caching (Redis)
 - Multi-model support
 - RAG (Retrieval-Augmented Generation)
